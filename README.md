@@ -1,3 +1,5 @@
+# Web Api Task
+
 Task was to create a simple web api which consists of authentication and basic crud operations
 
 Database used was postgresql
