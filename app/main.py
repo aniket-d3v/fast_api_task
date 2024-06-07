@@ -1,12 +1,32 @@
-from fastapi import FastAPI,Depends,HTTPException
+from fastapi import FastAPI,Depends,HTTPException,Security,Body
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from . import database,models,operations,schema
 from sqlalchemy.orm import Session
 from jose import JWTError
 from .database import SessionLocal
+import requests
+import time
+from fastapi.concurrency import run_in_threadpool
+from fastapi.security.api_key import APIKeyHeader,APIKey
+
+
+
 oauth_scheme=OAuth2PasswordBearer(tokenUrl="login")
 pwd_ctx=CryptContext(schemes=["bcrypt"],deprecated="auto")
+
+
+API_KEY = "1234567abcdef"
+API_KEY_NAME = "api_key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    if api_key_header == API_KEY:
+        return api_key_header
+    else:
+        raise HTTPException(status_code=403, detail="Invalid Api key :)")
+
+
 ALGORITHM="HS256"
 TOKEN_SECRET="a2e7d9f13508cf22a2ab280bedaa9828"
 
@@ -62,7 +82,7 @@ def login(form_data:OAuth2PasswordRequestForm=Depends(),db:Session=Depends(get_d
         raise HTTPException(status_code=401,detail="Unauthorized")
     access_token=operations.create_access_token(data={"sub":form_data.username})
     refresh_token=operations.create_refresh_token(data={"sub":form_data.username})
-    return {"access token":access_token,"token type":"bearer","refresh_token":refresh_token}
+    return {"access_token":access_token,"token_type":"bearer","refresh_token":refresh_token}
 
 
 
@@ -146,3 +166,30 @@ def delete_user(user_id:int,db:Session=Depends(get_db),token:str=Depends(oauth_s
             return {"Message":"Deleted Successfully"}
         else:
             raise HTTPException(status_code=402,detail="Cannot delete or invalid id sent to delete that does not exist")
+
+
+
+@app.get("/apikeygetdata")
+def apikeywith(api_key:APIKey=Depends(get_api_key),):
+    data=requests.get("https://jsonplaceholder.typicode.com/todos/1")
+    return data.json()
+
+
+@app.get("/asyncrequest")
+async def asyncreq():
+
+    def fetchData():
+        req=requests.get("https://jsonplaceholder.typicode.com/todos")
+        if req.status_code!=200:
+            raise HTTPException(status_code=req.status_code,detail="Error in getting the data")
+        return req.json()
+    
+    data=await run_in_threadpool(fetchData)
+    return data
+
+
+# Multiple bodies for single endpoints
+
+@app.post("/sendmedata")
+def sendata(item:schema.Item=Body(...),games:schema.Games=Body(...)):
+    return {"items":item,"games":games}
