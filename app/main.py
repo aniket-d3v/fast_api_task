@@ -17,6 +17,8 @@ def get_db():
     finally:
         db.close()
 
+
+# Ignore this function :)
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth_scheme)):
     credentials_exception = HTTPException(
         status_code=401, detail="Could not validate credentials"
