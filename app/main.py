@@ -168,6 +168,7 @@ def delete_user(user_id:int,db:Session=Depends(get_db),token:str=Depends(oauth_s
             raise HTTPException(status_code=402,detail="Cannot delete or invalid id sent to delete that does not exist")
 
 
+# The below code is not the part of the task , it showcases the developers notes mentioned
 
 @app.get("/apikeygetdata")
 def apikeywith(api_key:APIKey=Depends(get_api_key),):
